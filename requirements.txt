@@ -1,0 +1,10 @@
+flask>=2.2
+numpy
+opencv-python-headless
+pillow
+scikit-learn
+
+# Optional: AI-quality neat cutout. If your Vercel build fails because the
+# package is too large, simply delete this line — the app automatically
+# falls back to OpenCV GrabCut for background removal / cut & paste.
+rembg[cpu]

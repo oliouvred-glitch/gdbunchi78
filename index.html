@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🖼️ AI Image Editor</title>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+<header>
+  <h1>🖼️ AI Image Editor</h1>
+  <p>Upload → click / type keywords → Run → Download</p>
+</header>
+
+<main>
+  <!-- ============ STEP 1 : UPLOAD (Data Collection) ============ -->
+  <section class="card">
+    <h2>📁 1 · Upload Image</h2>
+    <div class="upload-row">
+      <div class="drop" id="dropMain">
+        <input type="file" id="fileMain" accept="image/*" hidden>
+        <button class="btn primary" onclick="document.getElementById('fileMain').click()">📂 Browse Image</button>
+        <p>or drag &amp; drop an image here</p>
+        <img id="previewMain" alt="preview" hidden>
+        <button class="btn small" id="changeBtn" onclick="document.getElementById('fileMain').click()" hidden>🔄 Change Image</button>
+      </div>
+      <div class="drop" id="dropBg">
+        <input type="file" id="fileBg" accept="image/*" hidden>
+        <button class="btn" onclick="document.getElementById('fileBg').click()">🖼️ Second Image<br><small>(for Cut &amp; Paste)</small></button>
+        <img id="previewBg" alt="second image" hidden>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STEP 2 : KEYWORD OPTIONS ============ -->
+  <section class="card">
+    <h2>🎨 2 · Feature Options <small>(click a button → keyword is added to the prompt)</small></h2>
+
+    <h3>🪄 Background</h3>
+    <div class="chips">
+      <button class="chip" onclick="addKeyword('remove background')">🪄 Background Remover</button>
+      <button class="chip" onclick="addKeyword('white background')">⬜ White Background</button>
+      <button class="chip" onclick="addKeyword('change background color')">🎨 Change Background Color</button>
+      <button class="chip" onclick="addKeyword('cut and paste')">✂️ Cut &amp; Paste (needs 2nd image)</button>
+    </div>
+
+    <h3>🎭 Styles</h3>
+    <div class="chips">
+      <button class="chip" onclick="addKeyword('black and white')">🖤 Black &amp; White</button>
+      <button class="chip" onclick="addKeyword('cartoon')">🎭 Cartoon</button>
+      <button class="chip" onclick="addKeyword('ghibli')">🌸 Ghibli</button>
+      <button class="chip" onclick="addKeyword('ink outline')">✏️ Ink Outlines</button>
+      <button class="chip" onclick="addKeyword('change color')">🌈 Change Color</button>
+      <button class="chip" onclick="addKeyword('color quantized')">🎨 Color Quantized</button>
+      <button class="chip" onclick="addKeyword('smooth')">🌀 Smooth</button>
+      <button class="chip" onclick="addKeyword('upscale')">⬆️ Upscale</button>
+    </div>
+
+    <h3>✨ Effects</h3>
+    <div class="chips">
+      <select id="frameStyleSel" onchange="frameStyle(this.value)">
+        <option value="">🖼️ choose frame style…</option>
+        <option value="classic">Classic</option><option value="black">Black</option>
+        <option value="gold">Gold</option><option value="red">Red</option>
+        <option value="blue">Blue</option><option value="double">Double</option>
+      </select>
+      <button class="chip" onclick="addKeyword('shape album')">🎞️ Shape Album</button>
+      <button class="chip" onclick="addKeyword('3d image')">🧊 3D Image</button>
+      <button class="chip" onclick="addKeyword('2d image')">📄 2D Image</button>
+      <button class="chip" onclick="addKeyword('favicon')">🔖 Favicon</button>
+    </div>
+
+    <h3>✍️ Text &amp; Media</h3>
+    <div class="chips">
+      <button class="chip" onclick="addKeyword('text: ')">✍️ Add Text</button>
+      <button class="chip" onclick="addKeyword('video 3 seconds')">🎬 Video + Seconds</button>
+      <button class="chip" onclick="addKeyword('classify')">🐱 Classify (cat / dog)</button>
+    </div>
+  </section>
+
+  <!-- ============ STEP 3 : PROMPT / TEXT AREA ============ -->
+  <section class="card">
+    <h2>✍️ 3 · Prompt &amp; Text</h2>
+    <textarea id="prompt" rows="3"
+      placeholder='Type keywords, e.g.: remove background, cartoon, gold frame, text: Hello World'></textarea>
+    <input id="overlayText" placeholder="Text to overlay on the image (optional)">
+    <div class="row">
+      <label>🎨 Color (for change color / background color / text):</label>
+      <select id="colorPick">
+        <option value="">— pick a color —</option>
+        <option>red</option><option>blue</option><option>green</option><option>yellow</option>
+        <option>purple</option><option>pink</option><option>orange</option><option>brown</option>
+        <option>black</option><option>white</option><option>gray</option>
+        <option>light blue</option><option>light green</option>
+      </select>
+      <label>🎬 Seconds:</label>
+      <input type="number" id="seconds" value="3" min="1" max="15" style="width:70px">
+    </div>
+  </section>
+
+  <button id="runBtn" class="btn big" onclick="run()">▶️ Run</button>
+
+  <!-- ============ STEP 4 : RESULT ============ -->
+  <section class="card">
+    <h2>✅ 4 · Result</h2>
+    <p id="status">Waiting…</p>
+    <div id="taskList" class="chips"></div>
+    <img id="resultImg" alt="result" hidden>
+    <video id="resultVideo" controls hidden></video>
+    <div class="row">
+      <a id="downloadBtn" class="btn primary" hidden download>⬇️ Download Image</a>
+      <a id="videoDownload" class="btn" hidden download>⬇️ Download Video (GIF)</a>
+    </div>
+    <div id="classifyBox" class="classify" hidden></div>
+  </section>
+
+  <!-- ============ GALLERY (DATABASE ON SERVER) ============ -->
+  <section class="card">
+    <h2>🖼️ Gallery <small>(images are saved in the server database)</small></h2>
+    <div class="row">
+      <input id="galleryName" placeholder="Image name — use cat_... or dog_... to label for AI training">
+      <button class="btn" onclick="saveToGallery()">💾 Save Current Image</button>
+      <button class="btn" onclick="loadGallery()">🔄 Refresh</button>
+    </div>
+    <div id="galleryGrid" class="grid"></div>
+  </section>
+
+  <!-- ============ AI MODEL PIPELINE ============ -->
+  <section class="card">
+    <h2>🤖 AI Model Pipeline</h2>
+    <ol class="pipeline">
+      <li><b>Data Collection</b> — upload images / save them to the gallery</li>
+      <li><b>Data Preprocessing</b> — resize · smooth · grayscale · blur</li>
+      <li><b>Feature Engineering</b> — HOG texture + color histogram features</li>
+      <li><b>Model Training</b> — Logistic Regression classifier (cat vs dog)</li>
+      <li><b>Model Evaluation</b> — accuracy + classification report</li>
+      <li><b>Model Deployment</b> — use the <b>classify</b> keyword in your prompt</li>
+    </ol>
+    <button class="btn primary" onclick="trainModel()">🏋️ Train Model (cat vs dog)</button>
+    <pre id="trainResult"></pre>
+  </section>
+
+  <!-- ============ KEYWORD REFERENCE ============ -->
+  <section class="card">
+    <h2>🔤 Keyword Reference</h2>
+    <table id="kwTable"></table>
+  </section>
+</main>
+
+<script>
+let fileId = null, bgFileId = null;
+const $ = id => document.getElementById(id);
+const status = msg => { $('status').textContent = msg; };
+
+/* ---------- upload ---------- */
+async function uploadFile(file, slot){
+  const fd = new FormData(); fd.append('image', file);
+  status('⏳ Uploading…');
+  const r = await fetch('/upload', {method:'POST', body: fd});
+  const d = await r.json();
+  if(!d.success){ status('❌ ' + d.error); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = slot === 'main' ? $('previewMain') : $('previewBg');
+    img.src = e.target.result; img.hidden = false;
+    if(slot === 'main'){ fileId = d.file_id; $('changeBtn').hidden = false; }
+    else bgFileId = d.file_id;
+  };
+  reader.readAsDataURL(file);
+  status('✅ Image uploaded. Pick features and press Run.');
+}
+$('fileMain').onchange = e => e.target.files[0] && uploadFile(e.target.files[0], 'main');
+$('fileBg').onchange  = e => e.target.files[0] && uploadFile(e.target.files[0], 'bg');
+['dropMain','dropBg'].forEach(id => {
+  $(id).ondragover = e => e.preventDefault();
+  $(id).ondrop = e => { e.preventDefault();
+    if(e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0], id === 'dropMain' ? 'main' : 'bg'); };
+});
+
+/* ---------- keyword chips ---------- */
+function addKeyword(kw){
+  const t = $('prompt'), cur = t.value.trim();
+  if(cur.toLowerCase().includes(kw.toLowerCase())) return;
+  t.value = cur ? cur.replace(/,\s*$/, '') + ', ' + kw : kw;
+}
+function frameStyle(s){ if(s) addKeyword(s + ' frame'); }
+
+/* ---------- run ---------- */
+async function run(){
+  if(!fileId) return status('❌ Upload an image first.');
+  const payload = { file_id: fileId, prompt: $('prompt').value,
+                    user_text: $('overlayText').value, bg_file_id: bgFileId,
+                    bg_color: $('colorPick').value,
+                    seconds: parseInt($('seconds').value || 3, 10) };
+  $('runBtn').disabled = true; status('⏳ Running…');
+  try{
+    const r = await fetch('/process', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+    const d = await r.json();
+    if(!d.success){ status('❌ ' + d.error); return; }
+    let msg = '✅ Done: ' + d.tasks.join(', ');
+    if(d.notes && d.notes.length) msg += ' — ' + d.notes.join(' ');
+    if(d.rembg === false) msg += ' (note: rembg not installed → GrabCut cutout used)';
+    status(msg);
+    $('taskList').innerHTML = d.tasks.map(t => `<span class="chip done">${t}</span>`).join('');
+    if(d.image){ $('resultImg').src = d.image; $('resultImg').hidden = false; }
+    $('downloadBtn').href = d.download || '#'; $('downloadBtn').hidden = !d.download;
+    if(d.video){ $('resultVideo').src = d.video; $('resultVideo').hidden = false;
+                 $('videoDownload').href = d.video; $('videoDownload').hidden = false; }
+    else { $('resultVideo').hidden = true; $('videoDownload').hidden = true; }
+    if(d.classify){
+      $('classifyBox').hidden = false;
+      $('classifyBox').innerHTML = d.classify.label
+        ? `🐾 Prediction: <b>${d.classify.label.toUpperCase()}</b> (${d.classify.confidence}% confidence)`
+        : '🤖 ' + (d.classify.error || '');
+    } else $('classifyBox').hidden = true;
+  }catch(err){ status('❌ ' + err); }
+  finally{ $('runBtn').disabled = false; }
+}
+
+/* ---------- gallery ---------- */
+async function saveToGallery(){
+  if(!fileId) return status('❌ Upload an image before saving.');
+  const r = await fetch('/gallery/save', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({file_id: fileId, name: $('galleryName').value, prompt: $('prompt').value})});
+  const d = await r.json();
+  status(d.success ? '💾 Saved to gallery (id ' + d.id + ')' : '❌ ' + d.error);
+  loadGallery();
+}
+async function loadGallery(){
+  const r = await fetch('/gallery'); const d = await r.json();
+  $('galleryGrid').innerHTML = d.items.length ? d.items.map(it => `
+    <div class="g-item">
+      <img src="${it.url}" alt="${it.name}">
+      <div class="g-name">${it.name}</div>
+      <div class="row">
+        <button class="btn small" onclick="useGalleryImage(${it.id}, '${it.url}')">Use</button>
+        <button class="btn small danger" onclick="deleteGallery(${it.id})">🗑️</button>
+      </div>
+    </div>`).join('') : '<p>Gallery is empty — save an image above.</p>';
+}
+function useGalleryImage(id, url){
+  fileId = 'g:' + id;
+  $('previewMain').src = url; $('previewMain').hidden = false;
+  status('✅ Gallery image loaded — pick features and press Run.');
+}
+async function deleteGallery(id){ await fetch('/gallery/delete/' + id, {method:'POST'}); loadGallery(); }
+
+/* ---------- train model ---------- */
+async function trainModel(){
+  status('⏳ Training model…');
+  const r = await fetch('/train', {method:'POST'});
+  const d = await r.json();
+  $('trainResult').textContent = d.success
+    ? `✅ Accuracy: ${d.accuracy}%  (images used: ${d.images_used})\n\n${d.report}`
+    : '❌ ' + d.error;
+  status(d.success ? '✅ Model trained & deployed.' : '❌ Training failed.');
+}
+
+/* ---------- keyword reference ---------- */
+async function loadKeywords(){
+  const r = await fetch('/keywords'); const d = await r.json();
+  $('kwTable').innerHTML = '<tr><th>Feature</th><th>Keywords</th></tr>' +
+    Object.entries(d.features).map(([k, kws]) =>
+      `<tr><td>${k}</td><td>${kws.join(' · ')}</td></tr>`).join('');
+}
+
+loadGallery(); loadKeywords();
+</script>
+</body>
+</html>
